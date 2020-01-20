@@ -17,6 +17,70 @@ SCREENHEIGHT = 260                          # 窗体高度
 FPS = 30                                    # 更新画面的时间
 
 
+class MyMap:
+    def __init__(self, x, y):
+        # 加载背景图片
+        self.bg = pygame.image.load('image/bg.png').convert_alpha()        # 加载图片
+        self.x = x
+        self.y = y
+
+    def map_rolling(self):
+        if self.x < -800:              # 小于 -790 说明地图已经移动完毕
+            self.x = 800               # 给地图一个新的坐标点
+        else:
+            self.x -= 5                # 5 个像素向左移动
+
+    def map_update(self):
+        SCREEN.blit(self.bg, (self.x, self.y))              # 将图片画到窗口上
+
+
+# 恐龙类
+class Dinosaur:
+    def __init__(self):
+        # 初始化小恐龙矩形
+        self.rect = pygame.Rect(0, 0, 0, 0)
+        self.jumpState = False              # 跳跃的状态
+        self.jumpHeight = 130               # 跳跃的高度
+        self.lowest_y = 140                 # 最低坐标
+        self.jumpValue = 0                  # 跳跃增变量
+        # 小恐龙动图索引
+        self.dinosaurIndex = 0
+        self.dinosaurIndexGen = cycle([0, 1, 2])
+        # 加载小恐龙图片
+        self.dinosaur_img = (
+            pygame.image.load('image/dinosaur1.png').convert_alpha(),
+            pygame.image.load('image/dinosaur2.png').convert_alpha(),
+            pygame.image.load('image/dinosaur3.png').convert_alpha(),
+        )
+        self.jump_audio = pygame.mixer.Sound('audio/jump.wav')          # 跳跃音乐
+        self.rect.size = self.dinosaur_img[0].get_size()
+        self.x = 50                           # 绘制恐龙的 x 坐标
+        self.y = self.lowest_y                # 绘制恐龙的 y 坐标
+        self.rect.topleft = (self.x, self.y)
+
+    # 跳状态
+    def jump(self):
+        self.jumpState = True
+
+    # 小恐龙移动
+    def move(self):
+        if self.jumpState:                     # 当起跳的时候
+            if self.rect.y >= self.lowest_y:    # 如果站在地上
+                self.jumpValue = -5            # 以 5 个像素值向上移动
+            if self.rect.y <= self.lowest_y - self.jumpHeight:         # 恐龙到达顶部回落
+                self.jumpValue = 5             # 以 5 个像素向下移动
+            self.rect.y += self.jumpValue      # 通过循环改变恐龙的 y 坐标
+            if self.rect.y >= self.lowest_y:   # 如果恐龙回到地面
+                self.jumpState = False         # 关闭跳跃状态
+
+    # 绘制恐龙
+    def draw_dinosaur(self):
+        # 匹配恐龙动图
+        dinosaurIndex = next(self.dinosaurIndexGen)
+        # 绘制小恐龙
+        SCREEN.blit(self.dinosaur_img[dinosaurIndex], (self.x, self.rect.y))
+
+
 # 障碍物类
 class Obstacle:
     score = 1                # 分数
@@ -77,6 +141,7 @@ class Obstacle:
     # 显示分数
     def show_score(self, score):
         '''在窗体顶部中间的位置显示分数'''
+        # 将积分拆成两个独立的分数
         self.scorDigits = [int(x) for x in list(str(score))]
         totalWidth = 0
         for digit in self.scorDigits:
@@ -89,70 +154,6 @@ class Obstacle:
             SCREEN.blit(self.numbers[digit], (Xoffset, SCREENHEIGHT * 0.1))
             # 随着数字增加改变位置
             Xoffset += self.numbers[digit].get_width()
-
-
-# 恐龙类
-class Dinosaur:
-    def __init__(self):
-        # 初始化小恐龙矩形
-        self.rect = pygame.Rect(0, 0, 0, 0)
-        self.jumpState = False              # 跳跃的状态
-        self.jumpHeight = 130               # 跳跃的高度
-        self.lowest_y = 140                 # 最低坐标
-        self.jumpValue = 0                  # 跳跃增变量
-        # 小恐龙动图索引
-        self.dinosaurIndex = 0
-        self.dinosaurIndexGen = cycle([0, 1, 2])
-        # 加载小恐龙图片
-        self.dinosaur_img = (
-            pygame.image.load('image/dinosaur1.png').convert_alpha(),
-            pygame.image.load('image/dinosaur2.png').convert_alpha(),
-            pygame.image.load('image/dinosaur3.png').convert_alpha(),
-        )
-        self.jump_audio = pygame.mixer.Sound('audio/jump.wav')          # 跳跃音乐
-        self.rect.size = self.dinosaur_img[0].get_size()
-        self.x = 50                           # 绘制恐龙的 x 坐标
-        self.y = self.lowest_y                # 绘制恐龙的 y 坐标
-        self.rect.topleft = (self.x, self.y)
-
-    # 跳状态
-    def jump(self):
-        self.jumpState = True
-
-    # 小恐龙移动
-    def move(self):
-        if self.jumpState:                     # 当起跳的时候
-            if self.rect.y >= self.lowest_y:    # 如果站在地上
-                self.jumpValue = -5            # 以 5 个像素值向上移动
-            if self.rect.y <= self.lowest_y - self.jumpHeight:         # 恐龙到达顶部回落
-                self.jumpValue = 5             # 以 5 个像素向下移动
-            self.rect.y += self.jumpValue      # 通过循环改变恐龙的 y 坐标
-            if self.rect.y >= self.lowest_y:   # 如果恐龙回到地面
-                self.jumpState = False         # 关闭跳跃状态
-
-    # 绘制恐龙
-    def draw_dinosaur(self):
-        # 匹配恐龙动图
-        dinosaurIndex = next(self.dinosaurIndexGen)
-        # 绘制小恐龙
-        SCREEN.blit(self.dinosaur_img[dinosaurIndex], (self.x, self.rect.y))
-
-
-class MyMap:
-    def __init__(self, x, y):
-        # 加载背景图片
-        self.bg = pygame.image.load('image/bg.png').convert_alpha()        # 加载图片
-        self.x = x
-        self.y = y
-
-    def map_rolling(self):
-        if self.x < -800:              # 小于 -790 说明地图已经移动完毕
-            self.x = 800               # 给地图一个新的坐标点
-        else:
-            self.x -= 5                # 5 个像素向左移动
-
-    def map_update(self):
-        SCREEN.blit(self.bg, (self.x, self.y))              # 将图片画到窗口上
 
 
 # 游戏结束的方法
