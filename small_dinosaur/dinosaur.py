@@ -65,6 +65,31 @@ class Obstacle:
     def draw_obstacle(self):
         SCREEN.blit(self.image, (self.rect.x, self.rect.y))
 
+    # 获取分数
+    def get_score(self):
+        self.score
+        tmp = self.score
+        if tmp == 1:
+            self.score_audio.play()                        # 播放加分音乐
+        self.score = 0
+        return tmp
+
+    # 显示分数
+    def show_score(self, score):
+        '''在窗体顶部中间的位置显示分数'''
+        self.scorDigits = [int(x) for x in list(str(score))]
+        totalWidth = 0
+        for digit in self.scorDigits:
+            # 获取积分图片的宽度
+            totalWidth += self.numbers[digit].get_width()
+        # 分数横向位置
+        Xoffset = (SCREENWIDTH - totalWidth) / 2
+        for digit in self.scorDigits:
+            # 绘制分数
+            SCREEN.blit(self.numbers[digit], (Xoffset, SCREENHEIGHT * 0.1))
+            # 随着数字增加改变位置
+            Xoffset += self.numbers[digit].get_width()
+
 
 # 恐龙类
 class Dinosaur:
@@ -130,6 +155,20 @@ class MyMap:
         SCREEN.blit(self.bg, (self.x, self.y))              # 将图片画到窗口上
 
 
+# 游戏结束的方法
+def game_over():
+    bump_audio = pygame.mixer.Sound('audio/bump.wav')        # 撞击
+    bump_audio.play()
+    # 获取窗体宽度、高度
+    screen_w = pygame.display.Info().current_w
+    screen_h = pygame.display.Info().current_h
+    # 加载游戏结束的图片
+    over_img = pygame.image.load('image/gameover.png').convert_alpha()
+    # 将游戏结束的图片绘制在窗体的中间位置
+    SCREEN.blit(over_img, ((screen_w - over_img.get_width()) / 2,
+                           (screen_h - over_img.get_height()) / 2))
+
+
 def main_game():
     score = 0                               # 得分
     over = False
@@ -164,8 +203,10 @@ def main_game():
                 if dinosaur.rect.y >= dinosaur.lowest_y:          # 如果恐龙在地面上
                     dinosaur.jump()                               # 开启恐龙跳的状态
                     dinosaur.jump_audio.play()                    # 播放小恐龙跳跃音效
+                if over is True:             # 判断游戏结束的开关是否开启
+                    main_game()              # 如果开启将调用 main_game() 方法重新启动游戏
 
-        if not over:
+        if over is False:
             # 绘制地图起到更新地图的作用
             bg1.map_update()
             # 地图移动
@@ -177,23 +218,35 @@ def main_game():
             # 绘制恐龙
             dinosaur.draw_dinosaur()
 
-        # 计算障碍物间隔时间
-        if addObstacleTime >= 1300:
-            r = random.randint(0, 100)
-            if r > 40:
-                # 创建障碍物对象
-                obstacle = Obstacle()
-                # 将障碍物对象添加到列表中
-                lists.append(obstacle)
-            # 重置添加障碍物时间
-            addObstacleTime = 0
+            # 计算障碍物间隔时间
+            if addObstacleTime >= 1300:
+                r = random.randint(0, 100)
+                if r > 40:
+                    # 创建障碍物对象
+                    obstacle = Obstacle()
+                    # 将障碍物对象添加到列表中
+                    lists.append(obstacle)
+                # 重置添加障碍物时间
+                addObstacleTime = 0
 
-        # 循环遍历障碍物
-        for i in range(len(lists)):
-            # 障碍物移动
-            lists[i].obstacle_move()
-            # 绘制障碍物
-            lists[i].draw_obstacle()
+            # 循环遍历障碍物
+            for i in range(len(lists)):
+                # 障碍物移动
+                lists[i].obstacle_move()
+                # 绘制障碍物
+                lists[i].draw_obstacle()
+
+                # 判断恐龙与障碍物是否碰撞
+                if pygame.sprite.collide_rect(dinosaur, lists[i]):
+                    over = True                        # 碰撞后开启结束开关
+                    game_over()                        # 调用游戏结束的方法
+                else:
+                    # 判断小恐龙是否越过了障碍物
+                    if (lists[i].rect.x + lists[i].rect.width) < dinosaur.rect.x:
+                        # 加分
+                        score += lists[i].get_score()
+                # 显示分数
+                lists[i].show_score(score)
 
         addObstacleTime += 20       # 增加障碍物时间
         pygame.display.update()      # 更新整个窗体
